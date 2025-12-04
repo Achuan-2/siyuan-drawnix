@@ -649,7 +649,7 @@ export default class DrawnixPlugin extends Plugin {
         const imageInfo: DrawnixImageInfo = this.data;
         const editTabHTML = `
 <div class="drawnix-edit-tab">
-    <iframe src="/plugins/siyuan-embed-drawnix/drawnix-embed/index.html"></iframe>
+    <iframe src="/plugins/siyuan-drawnix/drawnix-embed/index.html"></iframe>
 </div>`;
         this.element.innerHTML = editTabHTML;
 
@@ -842,7 +842,7 @@ export default class DrawnixPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
       <div class="edit-dialog-editor">
-        <iframe src="/plugins/siyuan-embed-drawnix/drawnix-embed/index.html?iframeID=${iframeID}"></iframe>
+        <iframe src="/plugins/siyuan-drawnix/drawnix-embed/index.html?iframeID=${iframeID}"></iframe>
       </div>
       <div class="fn__hr--b"></div>
     </div>
