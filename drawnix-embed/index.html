@@ -59,7 +59,6 @@
 
         // 使用防抖避免频繁自动保存
         const autoSave = debounce((data) => {
-            console.log('[Drawnix] Auto-saving...');
             window.parent.postMessage({
                 type: 'autosave',
                 data: data
