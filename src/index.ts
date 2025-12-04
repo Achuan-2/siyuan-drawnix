@@ -92,19 +92,7 @@ export default class DrawnixPlugin extends Plugin {
    * @param msg message content
    * @param timeout display timeout in ms, default 7000
    */
-  private async pushNotification(msg: string, timeout = 7000) {
-    try {
-      // Use the global fetch API to call SiYuan's endpoint
-      // This endpoint will show a small notification at the top/right of the editor
-      await fetch('/api/notification/pushMsg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ msg, timeout }),
-      });
-    } catch (err) {
-      console.error('Failed to push SiYuan notification', err);
-    }
-  }
+
 
   async onload() {
     this.initMetaInfo();
@@ -235,7 +223,6 @@ export default class DrawnixPlugin extends Plugin {
     (dialog.element.querySelector(".b3-dialog__action [data-type='confirm']") as HTMLElement).addEventListener("click", () => {
       this.data[STORAGE_NAME].labelDisplay = (dialog.element.querySelector("[data-type='labelDisplay']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].embedImageFormat = (dialog.element.querySelector("[data-type='embedImageFormat']") as HTMLSelectElement).value;
-      this.data[STORAGE_NAME].fullscreenEdit = (dialog.element.querySelector("[data-type='fullscreenEdit']") as HTMLInputElement).checked;
       this.data[STORAGE_NAME].editWindow = (dialog.element.querySelector("[data-type='editWindow']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].themeMode = (dialog.element.querySelector("[data-type='themeMode']") as HTMLSelectElement).value;
       this.saveData(STORAGE_NAME, this.data[STORAGE_NAME]);
@@ -250,7 +237,6 @@ export default class DrawnixPlugin extends Plugin {
     if (!this.data[STORAGE_NAME]) this.data[STORAGE_NAME] = {};
     if (typeof this.data[STORAGE_NAME].labelDisplay === 'undefined') this.data[STORAGE_NAME].labelDisplay = "showLabelOnHover";
     if (typeof this.data[STORAGE_NAME].embedImageFormat === 'undefined') this.data[STORAGE_NAME].embedImageFormat = "svg";
-    if (typeof this.data[STORAGE_NAME].fullscreenEdit === 'undefined') this.data[STORAGE_NAME].fullscreenEdit = false;
     if (typeof this.data[STORAGE_NAME].editWindow === 'undefined') this.data[STORAGE_NAME].editWindow = 'dialog';
     if (typeof this.data[STORAGE_NAME].themeMode === 'undefined') this.data[STORAGE_NAME].themeMode = "themeLight";
 
@@ -279,16 +265,6 @@ export default class DrawnixPlugin extends Plugin {
             return `<option value="${option}"${isSelected ? " selected" : ""}>${option}</option>`;
           }).join("");
           return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="embedImageFormat">${optionsHTML}</select>`);
-        },
-      },
-      {
-        title: this.i18n.fullscreenEdit,
-        direction: "column",
-        description: this.i18n.fullscreenEditDescription,
-        createActionElement: () => {
-          const element = HTMLToElement(`<input type="checkbox" class="b3-switch fn__flex-center" data-type="fullscreenEdit">`) as HTMLInputElement;
-          element.checked = this.data[STORAGE_NAME].fullscreenEdit;
-          return element;
         },
       },
       {
@@ -417,7 +393,7 @@ export default class DrawnixPlugin extends Plugin {
 
   public getPlaceholderImageContent(format: 'svg' | 'png'): string {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="270" height="183"><rect width="100%" height="100%" fill="#ffffff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="#888">Drawnix</text></svg>`;
-    const base64 = btoa(unescape(encodeURIComponent(svg)));
+    const base64 = unicodeToBase64(svg);
     if (format === 'svg') return `data:image/svg+xml;base64,${base64}`;
     // Fallback: return svg data URL even for png to ensure a valid data URL is returned
     return `data:image/svg+xml;base64,${base64}`;
@@ -445,28 +421,7 @@ export default class DrawnixPlugin extends Plugin {
         "version": 1,
         "source": "web",
         "children": [
-          {
-            "id": "QeDkz",
-            "type": "mind",
-            "data": {
-              "topic": {
-                "children": [
-                  {
-                    "text": "中心主题2"
-                  }
-                ],
-                "type": "paragraph"
-              }
-            },
-            "children": [],
-            "layout": "right",
-            "points": [
-              [
-                119.74654114259533,
-                26.640714594298288
-              ]
-            ]
-          }
+
         ],
         "viewport": {
           "zoom": 0.8920378279589448,
@@ -511,9 +466,7 @@ export default class DrawnixPlugin extends Plugin {
 
 
   public async updateDrawnixImage(imageInfo: DrawnixImageInfo, callback?: (response: IWebSocketData) => void) {
-    if (!imageInfo.data) {
-      imageInfo.data = this.getPlaceholderImageContent(imageInfo.format);
-    }
+
 
     const blob = dataURLToBlob(imageInfo.data);
     const file = new File([blob], imageInfo.imageURL.split('/').pop(), { type: blob.type });
@@ -708,6 +661,29 @@ export default class DrawnixPlugin extends Plugin {
           iframe.contentWindow.postMessage(message, '*');
         };
 
+        const fullscreenOnLogo = '<svg t="1763089104127" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5274" width="24" height="24"><path d="M149.333333 394.666667c17.066667 0 32-14.933333 32-32v-136.533334l187.733334 187.733334c6.4 6.4 14.933333 8.533333 23.466666 8.533333s17.066667-2.133333 23.466667-8.533333c12.8-12.8 12.8-32 0-44.8l-187.733333-187.733334H362.666667c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32H149.333333c-4.266667 0-8.533333 0-10.666666 2.133334-8.533333 4.266667-14.933333 10.666667-19.2 17.066666-2.133333 4.266667-2.133333 8.533333-2.133334 12.8v213.333334c0 17.066667 14.933333 32 32 32zM874.666667 629.333333c-17.066667 0-32 14.933333-32 32v136.533334L642.133333 597.333333c-12.8-12.8-32-12.8-44.8 0s-12.8 32 0 44.8l200.533334 200.533334H661.333333c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h213.333334c4.266667 0 8.533333 0 10.666666-2.133334 8.533333-4.266667 14.933333-8.533333 17.066667-17.066666 2.133333-4.266667 2.133333-8.533333 2.133333-10.666667V661.333333c2.133333-17.066667-12.8-32-29.866666-32zM381.866667 595.2l-200.533334 200.533333V661.333333c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v213.333334c0 4.266667 0 8.533333 2.133334 10.666666 4.266667 8.533333 8.533333 14.933333 17.066666 17.066667 4.266667 2.133333 8.533333 2.133333 10.666667 2.133333h213.333333c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32h-136.533333l200.533333-200.533333c12.8-12.8 12.8-32 0-44.8s-29.866667-10.666667-42.666666 0zM904.533333 138.666667c0-2.133333 0-2.133333 0 0-4.266667-8.533333-10.666667-14.933333-17.066666-17.066667-4.266667-2.133333-8.533333-2.133333-10.666667-2.133333H661.333333c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h136.533334l-187.733334 187.733333c-12.8 12.8-12.8 32 0 44.8 6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466667-8.533333l187.733333-187.733333V362.666667c0 17.066667 14.933333 32 32 32s32-14.933333 32-32V149.333333c-2.133333-4.266667-2.133333-8.533333-4.266667-10.666666z" fill="#666666" p-id="5275"></path></svg>';
+        const fullscreenOffLogo = '<svg t="1763089178999" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5443" width="24" height="24"><path d="M313.6 358.4H177.066667c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h213.333333c4.266667 0 8.533333 0 10.666667-2.133333 8.533333-4.266667 14.933333-8.533333 17.066666-17.066667 2.133333-4.266667 2.133333-8.533333 2.133334-10.666667v-213.333333c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v136.533333L172.8 125.866667c-12.8-12.8-32-12.8-44.8 0-12.8 12.8-12.8 32 0 44.8l185.6 187.733333zM695.466667 650.666667H832c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32H618.666667c-4.266667 0-8.533333 0-10.666667 2.133333-8.533333 4.266667-14.933333 8.533333-17.066667 17.066667-2.133333 4.266667-2.133333 8.533333-2.133333 10.666666v213.333334c0 17.066667 14.933333 32 32 32s32-14.933333 32-32v-136.533334l200.533333 200.533334c6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466667-8.533333c12.8-12.8 12.8-32 0-44.8l-204.8-198.4zM435.2 605.866667c-4.266667-8.533333-8.533333-14.933333-17.066667-17.066667-4.266667-2.133333-8.533333-2.133333-10.666666-2.133333H192c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h136.533333L128 851.2c-12.8 12.8-12.8 32 0 44.8 6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466666-8.533333l200.533334-200.533333V832c0 17.066667 14.933333 32 32 32s32-14.933333 32-32V618.666667c-2.133333-4.266667-2.133333-8.533333-4.266667-12.8zM603.733333 403.2c4.266667 8.533333 8.533333 14.933333 17.066667 17.066667 4.266667 2.133333 8.533333 2.133333 10.666667 2.133333h213.333333c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32h-136.533333L896 170.666667c12.8-12.8 12.8-32 0-44.8-12.8-12.8-32-12.8-44.8 0l-187.733333 187.733333V177.066667c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v213.333333c2.133333 4.266667 2.133333 8.533333 4.266666 12.8z" fill="#666666" p-id="5444"></path></svg>';
+        
+        const switchFullscreen = () => {
+          if (document.fullscreenElement) {
+            document.exitFullscreen();
+          } else {
+            this.element.requestFullscreen();
+          }
+        };
+
+        // 监听全屏状态变化，更新按钮图标
+        const fullscreenChangeHandler = () => {
+          const fullscreenButton = iframe.contentDocument?.querySelector('.customFullscreenButton') as HTMLElement;
+          if (fullscreenButton) {
+            const iconDiv = fullscreenButton.querySelector('.tool-icon__icon');
+            if (iconDiv) {
+              iconDiv.innerHTML = document.fullscreenElement ? fullscreenOffLogo : fullscreenOnLogo;
+            }
+          }
+        };
+        document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+
         const onInit = () => {
           let data = { children: [] };
           try {
@@ -721,6 +697,45 @@ export default class DrawnixPlugin extends Plugin {
             type: "init",
             data: data
           });
+          
+          // 等待 drawnix 工具栏渲染完成后添加全屏按钮
+          let retryCount = 0;
+          const maxRetries = 20;
+          const addFullscreenButton = () => {
+            try {
+              const toolbarElement = iframe.contentDocument?.querySelector(".zoom-toolbar .stack_horizontal");
+              if (toolbarElement) {
+                // 创建全屏按钮,样式与drawnix工具栏按钮保持一致
+                const doc = iframe.contentDocument;
+                const fullscreenButton = doc.createElement('button');
+                fullscreenButton.className = 'tool-icon_type_button tool-icon_size_medium customFullscreenButton tool-icon_type_button--show tool-icon';
+                fullscreenButton.title = '全屏';
+                fullscreenButton.setAttribute('aria-label', '全屏');
+                fullscreenButton.type = 'button';
+                
+                const iconDiv = doc.createElement('div');
+                iconDiv.className = 'tool-icon__icon';
+                iconDiv.setAttribute('aria-hidden', 'true');
+                iconDiv.setAttribute('aria-disabled', 'false');
+                iconDiv.innerHTML = fullscreenOnLogo;
+                
+                fullscreenButton.appendChild(iconDiv);
+                
+                // 添加到工具栏最后
+                toolbarElement.appendChild(fullscreenButton);
+                fullscreenButton.addEventListener('click', switchFullscreen);
+                
+              } else if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(addFullscreenButton, 100);
+              } else {
+                console.error('[Tab] Failed to find toolbar after max retries');
+              }
+            } catch (err) {
+              console.error('[Tab] Error adding fullscreen button:', err);
+            }
+          };
+          setTimeout(addFullscreenButton, 100);
         }
 
         const onSave = (message: any) => {
@@ -733,12 +748,13 @@ export default class DrawnixPlugin extends Plugin {
             type: 'export',
             format: imageInfo.format
           });
-          // 给思源发送保存通知
-          try {
-            const msg = (window as any)?.siyuan?.languages?.allChangesSaved || '保存成功';
-            that.pushNotification(msg, 7000);
-          } catch (err) {
-            console.error('Failed to send save notification', err);
+          // 给思源发送保存通知（仅手动保存时）
+          if (message.type === 'save') {
+            try {
+              const msg = (window as any)?.siyuan?.languages?.allChangesSaved || '保存成功';
+            } catch (err) {
+              console.error('Failed to send save notification', err);
+            }
           }
         }
 
@@ -776,7 +792,7 @@ export default class DrawnixPlugin extends Plugin {
               if (message.type == "ready") {
                 onInit();
               }
-              else if (message.type == "save") {
+              else if (message.type == "save" || message.type == "autosave") {
                 onSave(message);
               }
               else if (message.type == "export") {
@@ -801,6 +817,7 @@ export default class DrawnixPlugin extends Plugin {
         this.beforeDestroy = () => {
           window.removeEventListener("message", messageEventHandler);
           iframe.contentWindow.removeEventListener("keydown", keydownEventHandleer);
+          document.removeEventListener('fullscreenchange', fullscreenChangeHandler);
         };
       }
     });
@@ -868,6 +885,45 @@ export default class DrawnixPlugin extends Plugin {
         modified: 'unsavedChanges',
         title: this.isMobile ? '' : imageInfo.imageURL,
       });
+      
+      // 等待 drawnix 工具栏渲染完成后添加全屏按钮
+      let retryCount = 0;
+      const maxRetries = 20;
+      const addFullscreenButton = () => {
+        try {
+          const toolbarElement = iframe.contentDocument?.querySelector(".zoom-toolbar .stack_horizontal");
+          if (toolbarElement) {
+            // 创建全屏按钮,样式与drawnix工具栏按钮保持一致
+            const doc = iframe.contentDocument;
+            const fullscreenButton = doc.createElement('button');
+            fullscreenButton.className = 'tool-icon_type_button tool-icon_size_medium customFullscreenButton tool-icon_type_button--show tool-icon';
+            fullscreenButton.title = '全屏';
+            fullscreenButton.setAttribute('aria-label', '全屏');
+            fullscreenButton.type = 'button';
+            
+            const iconDiv = doc.createElement('div');
+            iconDiv.className = 'tool-icon__icon';
+            iconDiv.setAttribute('aria-hidden', 'true');
+            iconDiv.setAttribute('aria-disabled', 'false');
+            iconDiv.innerHTML = fullscreenOnLogo;
+            
+            fullscreenButton.appendChild(iconDiv);
+            
+            // 添加到工具栏最后
+            toolbarElement.appendChild(fullscreenButton);
+            fullscreenButton.addEventListener('click', switchFullscreen);
+            
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(addFullscreenButton, 100);
+          } else {
+            console.error('[Dialog] Failed to find toolbar after max retries');
+          }
+        } catch (err) {
+          console.error('[Dialog] Error adding fullscreen button:', err);
+        }
+      };
+      setTimeout(addFullscreenButton, 100);
     }
 
     let isFullscreen = false;
@@ -911,19 +967,6 @@ export default class DrawnixPlugin extends Plugin {
       }
     }
 
-    const onLoad = (message: any) => {
-      const toolbarElement = iframe.contentDocument.querySelector(".geToolbarContainer .geToolbarEnd");
-      if (toolbarElement) {
-        const fullscreenButton = HTMLToElement(`<a class="geButton customFullscreenButton"></a>`);
-        fullscreenButton.innerHTML = fullscreenOnLogo;
-        toolbarElement.prepend(fullscreenButton);
-        fullscreenButton.addEventListener('click', switchFullscreen);
-      }
-      if (this.data[STORAGE_NAME].fullscreenEdit) {
-        switchFullscreen();
-      }
-    }
-
     const onSave = (message: any) => {
       if (message.data) {
         imageInfo.drawnixData = JSON.stringify(message.data);
@@ -932,12 +975,13 @@ export default class DrawnixPlugin extends Plugin {
         type: 'export',
         format: imageInfo.format,
       });
-      // 给思源发送保存通知（区分自动保存 / 手动保存）
-      try {
-        const msgKey = message?.type === 'autosave' ? '已自动保存' : ((window as any)?.siyuan?.languages?.allChangesSaved || '保存成功');
-        this.pushNotification(msgKey, 7000);
-      } catch (err) {
-        console.error('Failed to send save notification', err);
+      // 给思源发送保存通知（仅手动保存时）
+      if (message.type === 'save') {
+        try {
+          const msg = (window as any)?.siyuan?.languages?.allChangesSaved || '保存成功';
+        } catch (err) {
+          console.error('Failed to send save notification', err);
+        }
       }
     }
 
@@ -983,9 +1027,6 @@ export default class DrawnixPlugin extends Plugin {
           // console.log(message.type);
           if (message.type == "ready") {
             onInit();
-          }
-          else if (message.type == "load") {
-            onLoad(message);
           }
           else if (message.type == "save" || message.type == "autosave") {
             onSave(message);

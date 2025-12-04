@@ -57,12 +57,18 @@
             };
         }
 
+        // 使用防抖避免频繁自动保存
         const autoSave = debounce((data) => {
-             window.parent.postMessage({
-                type: 'save',
+            console.log('[Drawnix] Auto-saving...');
+            window.parent.postMessage({
+                type: 'autosave',
                 data: data
             }, '*');
-        }, 2000);
+            // 触发保存时间更新事件，传递自动保存标识
+            window.dispatchEvent(new CustomEvent('drawnix-saved', {
+                detail: { isAutoSave: true }
+            }));
+        }, 1000); // 1秒防抖延迟
 
         function initialize(data) {
              isInitialized = true;
@@ -77,6 +83,10 @@
                     type: 'save',
                     data: newValue
                 }, '*');
+                // 触发保存时间更新事件，传递手动保存标识
+                window.dispatchEvent(new CustomEvent('drawnix-saved', {
+                    detail: { isAutoSave: false }
+                }));
             });
         }
 
